@@ -1,0 +1,49 @@
+name: Update OSS Contributions
+on:
+  schedule:
+    - cron: '0 9 * * *'  # 매일 오전 9시 (UTC 기준)
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch OSS Activities
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_USER: hsyeun
+        run: |
+          echo "### 🦋 Facebook/React" > react_activity.md
+          echo "" >> react_activity.md
+          gh api -H "Accept: application/vnd.github+json" \
+            /repos/facebook/react/issues/comments \
+            --jq '.[] | select(.user.login==$GITHUB_USER) | "- 💬 [Issue #" + (.issue_url | split("/")[-1]) + "](" + .html_url + ") - " + (.created_at[0:10])' \
+            | head -n 5 >> react_activity.md
+
+          echo "" >> react_activity.md
+          echo "### 🔶 OpenAPI / OpenAPI Generator" > openapi_activity.md
+          echo "" >> openapi_activity.md
+          gh issue list --repo OpenAPITools/openapi-generator --author $GITHUB_USER --limit 5 \
+            --json number,title,state,url,createdAt \
+            --jq '.[] | "- " + (if .state=="OPEN" then "🟢" else "✅" end) + " [#" + (.number|tostring) + "](" + .url + ") " + .title + " (" + .createdAt[0:10] + ")"' \
+            >> openapi_activity.md
+
+          echo "" >> openapi_activity.md
+          echo "_Last updated: $(date '+%Y-%m-%d %H:%M:%S')_" >> openapi_activity.md
+
+      - name: Merge into README
+        run: |
+          awk '/<!--REACT_START-->/ {print; system("cat react_activity.md"); next}
+               /<!--REACT_END-->/ {print; next}
+               /<!--OPENAPI_START-->/ {print; system("cat openapi_activity.md"); next}
+               /<!--OPENAPI_END-->/ {print; next}
+               1' README.md > tmp && mv tmp README.md
+
+      - name: Commit & Push
+        uses: EndBug/add-and-commit@v9
+        with:
+          message: "chore: update OSS contribution activity"
+          add: 'README.md'
