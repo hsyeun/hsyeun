@@ -1,7 +1,7 @@
-name: Update OSS Contributions
+name: Update GitHub Activity
 on:
   schedule:
-    - cron: '32 17 * * *'  # 매일 오전 9시 (UTC 기준)
+    - cron: '0 9 * * *'  # 매일 오전 9시 (UTC 기준)
   workflow_dispatch:
 
 permissions:
@@ -16,7 +16,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch OSS Activities
+      - name: Generate React Activity Summary
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GITHUB_USER: hsyeun
