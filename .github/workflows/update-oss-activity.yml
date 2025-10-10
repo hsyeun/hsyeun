@@ -1,7 +1,7 @@
 name: Update OSS Contributions
 on:
   schedule:
-    - cron: '0 9 * * *'  # 매일 오전 9시 (UTC 기준)
+    - cron: '31 16 * * *'  # 매일 오전 9시 (UTC 기준)
   workflow_dispatch:
 
 jobs:
