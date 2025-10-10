@@ -1,7 +1,7 @@
 name: Update OSS Contributions
 on:
   schedule:
-    - cron: '50 16 * * *'  # 매일 오전 9시 (UTC 기준)
+    - cron: '32 17 * * *'  # 매일 오전 9시 (UTC 기준)
   workflow_dispatch:
 
 permissions:
@@ -21,23 +21,22 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GITHUB_USER: hsyeun
         run: |
-          echo "## 🦋 Facebook/React Issue Activity" > react_activity.md
-          echo "" >> react_activity.md
+          echo "" > react_activity.md
           gh api -H "Accept: application/vnd.github+json" \
             /repos/facebook/react/issues/comments \
             --paginate \
             --jq ".[] | select(.user.login==\"$GITHUB_USER\") | \"- 💬 [Issue #\" + (.issue_url | split(\"/\")[-1]) + \"](\" + .html_url + \") - \" + (.created_at[0:10])" \
             | head -n 5 >> react_activity.md
           echo "" >> react_activity.md
-          echo "_Last updated: $(date '+%Y-%m-%d %H:%M:%S')_" >> react_activity.md
+          echo "_Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')_" >> react_activity.md
 
       - name: Merge into README
         run: |
-          awk '/<!--REACT_START-->/ {print; system("cat react_activity.md"); next}
-               /<!--REACT_END-->/ {print; next}
-               /<!--OPENAPI_START-->/ {print; system("cat openapi_activity.md"); next}
-               /<!--OPENAPI_END-->/ {print; next}
-               1' README.md > tmp && mv tmp README.md
+          awk '
+            /<!--REACT_START-->/ {print; system("cat react_activity.md"); skip=1; next}
+            /<!--REACT_END-->/ {skip=0}
+            !skip
+          ' README.md > tmp && mv tmp README.md
 
       - name: Commit & Push
         uses: EndBug/add-and-commit@v9
