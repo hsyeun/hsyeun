@@ -16,23 +16,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GITHUB_USER: hsyeun
         run: |
-          echo "### 🦋 Facebook/React" > react_activity.md
+          echo "## 🦋 Facebook/React Issue Activity" > react_activity.md
           echo "" >> react_activity.md
           gh api -H "Accept: application/vnd.github+json" \
             /repos/facebook/react/issues/comments \
-            --jq '.[] | select(.user.login==$GITHUB_USER) | "- 💬 [Issue #" + (.issue_url | split("/")[-1]) + "](" + .html_url + ") - " + (.created_at[0:10])' \
+            --jq '.[] | select(.user.login==$GITHUB_USER) | "- 💬 [Issue #" + (.issue_url | split("/")[-1]) + "](" + .html_url + ") - " + (.created_at[0:10])"' \
             | head -n 5 >> react_activity.md
-
           echo "" >> react_activity.md
-          echo "### 🔶 OpenAPI / OpenAPI Generator" > openapi_activity.md
-          echo "" >> openapi_activity.md
-          gh issue list --repo OpenAPITools/openapi-generator --author $GITHUB_USER --limit 5 \
-            --json number,title,state,url,createdAt \
-            --jq '.[] | "- " + (if .state=="OPEN" then "🟢" else "✅" end) + " [#" + (.number|tostring) + "](" + .url + ") " + .title + " (" + .createdAt[0:10] + ")"' \
-            >> openapi_activity.md
-
-          echo "" >> openapi_activity.md
-          echo "_Last updated: $(date '+%Y-%m-%d %H:%M:%S')_" >> openapi_activity.md
+          echo "_Last updated: $(date '+%Y-%m-%d %H:%M:%S')_" >> react_activity.md
 
       - name: Merge into README
         run: |
