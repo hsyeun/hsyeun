@@ -23,12 +23,13 @@ jobs:
         run: |
           echo "" > react_activity.md
           gh api -H "Accept: application/vnd.github+json" \
-            /repos/facebook/react/issues/comments \
-            --paginate \
-            --jq ".[] | select(.user.login==\"$GITHUB_USER\") | \"- 💬 [Issue #\" + (.issue_url | split(\"/\")[-1]) + \"](\" + .html_url + \") - \" + (.created_at[0:10])" \
-            | head -n 5 >> react_activity.md
+            "/search/issues?q=repo:facebook/react+commenter:${GITHUB_USER}" \
+            --jq '.items[] | "- 💬 [#" + (.number|tostring) + "](" + .html_url + ") " + .title + " (" + (.updated_at[0:10]) + ")"' \
+            | head -n 10 >> react_activity.md
+          
           echo "" >> react_activity.md
           echo "_Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')_" >> react_activity.md
+          cat react_activity.md
 
       - name: Merge into README
         run: |
