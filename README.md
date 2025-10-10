@@ -1,4 +1,7 @@
-## Hi there 👋
+## 👋 Hi, I'm Lisa!
+
+Welcome to my GitHub profile.
+I’m a full-stack web developer focused on front-end, data, and design.
 
 <!--
 **hsyeun/hsyeun** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
