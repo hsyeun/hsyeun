@@ -1,7 +1,7 @@
 name: Update OSS Contributions
 on:
   schedule:
-    - cron: '39 16 * * *'  # 매일 오전 9시 (UTC 기준)
+    - cron: '50 16 * * *'  # 매일 오전 9시 (UTC 기준)
   workflow_dispatch:
 
 permissions:
@@ -25,7 +25,8 @@ jobs:
           echo "" >> react_activity.md
           gh api -H "Accept: application/vnd.github+json" \
             /repos/facebook/react/issues/comments \
-            --jq '.[] | select(.user.login==$GITHUB_USER) | "- 💬 [Issue #" + (.issue_url | split("/")[-1]) + "](" + .html_url + ") - " + (.created_at[0:10])"' \
+            --paginate \
+            --jq ".[] | select(.user.login==\"$GITHUB_USER\") | \"- 💬 [Issue #\" + (.issue_url | split(\"/\")[-1]) + \"](\" + .html_url + \") - \" + (.created_at[0:10])" \
             | head -n 5 >> react_activity.md
           echo "" >> react_activity.md
           echo "_Last updated: $(date '+%Y-%m-%d %H:%M:%S')_" >> react_activity.md
