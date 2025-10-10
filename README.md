@@ -1,7 +1,7 @@
 ## 👋 Hi, I'm Lisa!
 
 Welcome to my GitHub profile.  
-I’m a full-stack web developer focused on front-end, data, and design.
+I’m a full-stack web developer focused on frontend, backend, and design.
 
 ## 📢 OpenAPI Activity
 ### 🦋 Facebook/React
