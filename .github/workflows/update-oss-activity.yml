@@ -22,13 +22,12 @@ jobs:
           GITHUB_USER: hsyeun
         run: |
           set -euo pipefail
-          echo "## 📢 OpenAPI Activity" > activity.md
           echo "" >> activity.md
 
           # 1. Fetch all activities (comments, issues, PRs)
           echo "Fetching recent activities..."
           gh api -H "Accept: application/vnd.github+json" \
-            "/search/issues?q=commenter:${GITHUB_USER}+author:${GITHUB_USER}" \
+            "/search/issues?q=commenter:${GITHUB_USER}+OR+author:${GITHUB_USER}+-user:${GITHUB_USER}" \
             --paginate \
             --jq '[.items[] | {
               repo: ((.repository_url | split("/"))[-2] + "/" + (.repository_url | split("/"))[-1]),
