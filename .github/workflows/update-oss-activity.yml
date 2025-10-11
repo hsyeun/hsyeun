@@ -16,7 +16,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Generate React Activity Summary
+      - name: Generate Open-Source Activity Summary
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GITHUB_USER: hsyeun
@@ -119,6 +119,6 @@ jobs:
             echo "No changes detected."
           else
             git add README.md
-            git commit -m "chore: update OpenAPI Activity"
+            git commit -m "chore: update Open-Source Activity"
             git push
           fi
