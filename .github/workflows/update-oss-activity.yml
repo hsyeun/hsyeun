@@ -1,7 +1,7 @@
 name: Update GitHub Activity
 on:
   schedule:
-    - cron: '0 9 * * *'  # 매일 오전 9시 (UTC 기준)
+    - cron: '0 15 * * *'  # 매일 오전 0시 (KST 기)
   workflow_dispatch:
 
 permissions:
@@ -21,26 +21,75 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GITHUB_USER: hsyeun
         run: |
-          echo "" > react_activity.md
+          set -euo pipefail
+          echo "## 📢 OpenAPI Activity" > activity.md
+          echo "" >> activity.md
+
+          # 1️⃣ Fetch all activities (comments, issues, PRs)
+          echo "Fetching recent activities..."
           gh api -H "Accept: application/vnd.github+json" \
-            "/search/issues?q=repo:facebook/react+commenter:${GITHUB_USER}" \
-            --jq '.items[] | "- 💬 [#" + (.number|tostring) + "](" + .html_url + ") " + .title + " (" + (.updated_at[0:10]) + ")"' \
-            | head -n 10 >> react_activity.md
-          
-          echo "" >> react_activity.md
-          echo "_Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')_" >> react_activity.md
-          cat react_activity.md
+            "/search/issues?q=commenter:${GITHUB_USER}+author:${GITHUB_USER}" \
+            --paginate \
+            --jq '[.items[] | {
+              repo: (.repository_url | split("/")[-2] + "/" + .repository_url | split("/")[-1]),
+              num: ("#" + (.number|tostring)),
+              url: .html_url,
+              title: .title,
+              updated: .updated_at,
+              updated_short: .updated_at[0:10],
+              type: (if .pull_request then "Pull Request"
+                     elif (.html_url | test("/issues/")) then "Issue"
+                     else "Comment" end)
+            }]' > all_activities.json
+
+          # 2️⃣ Group by repository (sorted latest first)
+          echo "Grouping and sorting by date..."
+          repos=$(jq -r '.[].repo' all_activities.json | sort -u)
+
+          for repo in $repos; do
+            echo "### ${repo}" >> activity.md
+
+            jq -r --arg repo "$repo" '
+              .[]
+              | select(.repo==$repo)
+              | sort_by(.updated)
+              | reverse
+              | "- " +
+                (if .type=="Comment" then "(Comment)"
+                 elif .type=="Issue" then "(Issue)"
+                 elif .type=="Pull Request" then "(Pull Request)"
+                 else "• (Activity)" end)
+                + " [\(.num)](\(.url)) " + .title + " (\(.updated_short))"
+            ' all_activities.json | head -n 5 >> activity.md
+
+            echo "" >> activity.md
+          done
+
+          # 3️⃣ Append timestamp (UTC)
+          echo "_Last updated: $(TZ='UTC' date '+%Y-%m-%d %H:%M:%S UTC')_" >> activity.md
+
+          echo ""
+          echo "===== Generated activity.md ====="
+          cat activity.md
+          echo "================================="
 
       - name: Merge into README
         run: |
+          set -euo pipefail
           awk '
-            /<!--REACT_START-->/ {print; system("cat react_activity.md"); skip=1; next}
-            /<!--REACT_END-->/ {skip=0}
+            /<!--ACTIVITY_START-->/ {print; system("cat activity.md"); skip=1; next}
+            /<!--ACTIVITY_END-->/ {skip=0}
             !skip
           ' README.md > tmp && mv tmp README.md
 
       - name: Commit & Push
-        uses: EndBug/add-and-commit@v9
-        with:
-          message: "chore: update OSS contribution activity"
-          add: 'README.md'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet --exit-code README.md; then
+            echo "No changes detected."
+          else
+            git add README.md
+            git commit -m "chore: update OpenAPI Activity"
+            git push
+          fi
