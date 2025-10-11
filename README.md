@@ -5,10 +5,12 @@ I’m a full-stack web developer focused on frontend, backend, and design.
 
 ## 📢 OpenAPI Activity
 <!--ACTIVITY_START-->
-### Facebook/React
-- 💬 [#34603](https://github.com/facebook/react/issues/34603) [DevTools Bug] Cannot read properties of undefined (reading 'length') (2025-10-08)
+## 📢 OpenAPI Activity
 
-_Last updated: 2025-10-11 09:13:26 UTC_
+### hsyeun/Kosa_3_ChatBot_Project
+- (Pull Request) [#4](https://github.com/hsyeun/Kosa_3_ChatBot_Project/pull/4) Revert "pull request from 선정" (2022-02-18)
+
+_Last updated: 2025-10-11 11:27:17 UTC_
 <!--ACTIVITY_END-->
 
 
