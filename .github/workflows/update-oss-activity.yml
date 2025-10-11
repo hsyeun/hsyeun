@@ -24,31 +24,45 @@ jobs:
           set -euo pipefail
           echo "" >> activity.md
 
-          # 1. Fetch all activities (comments, issues, PRs)
-          echo "Fetching recent activities..."
+          # 1. Fetch commented issues
+          echo "Fetching commented issues..."
           gh api -X GET -H "Accept: application/vnd.github+json" \
             /search/issues \
-            -f q="(commenter:${GITHUB_USER}+OR+author:${GITHUB_USER})+-user:${GITHUB_USER}" \
+            -f q="commenter:${GITHUB_USER}+-user:${GITHUB_USER}" \
             --paginate \
-            --jq '[.items[] | {
-              repo: ((.repository_url | split("/"))[-2] + "/" + (.repository_url | split("/"))[-1]),
-              num: ("#" + (.number|tostring)),
-              url: .html_url,
-              title: .title,
-              updated: .updated_at,
-              updated_short: .updated_at[0:10],
-              type: (if .pull_request then "Pull Request"
-                     elif (.html_url | test("/issues/")) then "Issue"
-                     else "Comment" end)
-            }]' > all_activities.json
-
-          # 2. Group by repository (sorted latest first)
+            --jq '.items[]' > commented.json || echo "[]" > commented.json
+          
+          # 2. Fetch authored issues/PRs
+          echo "Fetching authored issues/PRs..."
+          gh api -X GET -H "Accept: application/vnd.github+json" \
+            /search/issues \
+            -f q="author:${GITHUB_USER}+-user:${GITHUB_USER}" \
+            --paginate \
+            --jq '.items[]' > authored.json || echo "[]" > authored.json
+          
+          # 3. Merge both results & deduplicate
+          echo "Merging results..."
+          jq -s 'add
+            | unique_by(.id)
+            | map({
+                repo: ((.repository_url | split("/"))[-2] + "/" + (.repository_url | split("/"))[-1]),
+                num: ("#" + (.number|tostring)),
+                url: .html_url,
+                title: .title,
+                updated: .updated_at,
+                updated_short: .updated_at[0:10],
+                type: (if .pull_request then "Pull Request"
+                       elif (.html_url | test("/issues/")) then "Issue"
+                       else "Comment" end)
+              })' commented.json authored.json > all_activities.json
+          
+          # 4. Group by repo (latest first)
           echo "Grouping and sorting by date..."
           repos=$(jq -r '.[].repo' all_activities.json | sort -u)
-
+          
           for repo in $repos; do
             echo "### ${repo}" >> activity.md
-
+          
             jq -r --arg repo "$repo" '
               [.[] | select(.repo==$repo)]
               | sort_by(.updated)
@@ -61,11 +75,11 @@ jobs:
                  else "• (Activity)" end)
                 + " [\(.num)](\(.url)) " + .title + " (\(.updated_short))"
             ' all_activities.json | head -n 5 >> activity.md
-
+          
             echo "" >> activity.md
           done
 
-          # 3. Append timestamp (UTC)
+          # 5. Timestamp
           echo "_Last updated: $(TZ='UTC' date '+%Y-%m-%d %H:%M:%S UTC')_" >> activity.md
 
           echo ""
