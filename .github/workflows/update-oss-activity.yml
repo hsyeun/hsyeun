@@ -27,7 +27,8 @@ jobs:
           # 1. Fetch all activities (comments, issues, PRs)
           echo "Fetching recent activities..."
           gh api -H "Accept: application/vnd.github+json" \
-            "/search/issues?q=(commenter:${GITHUB_USER}%20OR%20author:${GITHUB_USER})%20-user:${GITHUB_USER}" \
+            search/issues \
+            -f q="(commenter:${GITHUB_USER}+OR+author:${GITHUB_USER})+-user:${GITHUB_USER}" \
             --paginate \
             --jq '[.items[] | {
               repo: ((.repository_url | split("/"))[-2] + "/" + (.repository_url | split("/"))[-1]),
