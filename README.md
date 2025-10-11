@@ -5,12 +5,8 @@ I’m a full-stack web developer focused on frontend, backend, and design.
 
 ## 📢 OpenAPI Activity
 <!--ACTIVITY_START-->
-## 📢 OpenAPI Activity
 
-### hsyeun/Kosa_3_ChatBot_Project
-- (Pull Request) [#4](https://github.com/hsyeun/Kosa_3_ChatBot_Project/pull/4) Revert "pull request from 선정" (2022-02-18)
-
-_Last updated: 2025-10-11 11:27:17 UTC_
+_Last updated: 2025-10-11 11:48:10 UTC_
 <!--ACTIVITY_END-->
 
 
