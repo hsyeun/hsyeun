@@ -97,7 +97,7 @@ jobs:
           done
 
           # 5. Timestamp
-          echo "_Last updated: $(TZ='UTC' date '+%Y-%m-%d %H:%M:%S UTC')_" >> activity.md
+          echo "_Last updated: $(TZ='UTC' date '+%Y-%m-%d %H:%M:%S UTC') ($(TZ='Asia/Seoul' date '+%Y-%m-%d %H:%M:%S KST'))_" >> activity.md
 
           echo "===== Generated activity.md ====="
           cat activity.md
