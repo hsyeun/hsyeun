@@ -24,68 +24,83 @@ jobs:
           set -euo pipefail
           echo "" >> activity.md
 
-          # 1. Fetch commented issues
-          echo "Fetching commented issues..."
-          gh api -X GET -H "Accept: application/vnd.github+json" \
-            /search/issues \
-            -f q="commenter:${GITHUB_USER}+-user:${GITHUB_USER}" \
+          # 내 퍼블릭 이벤트 모두 수집 (최대 최근 300건)
+          gh api -H "Accept: application/vnd.github+json" \
+            /users/${GITHUB_USER}/events/public \
             --paginate \
-            --jq '.items[]' > commented.json || echo "[]" > commented.json
+            > events_pages.json
+
+          # pages(json 배열들)을 하나의 배열로 병합
+          jq -s 'add' events_pages.json > events.json
+
+          # 2) 필요한 이벤트만 정규화
+          jq -r --arg user "$GITHUB_USER" '
+            [ .[]
+              | select(.repo.name | split("/")[0] != $user)
+              | if .type == "IssueCommentEvent" then
+                  {
+                    repo: .repo.name,
+                    type: "Comment",
+                    number: (.payload.issue.number),
+                    url: ("https://github.com/" + .repo.name + "/issues/" + (.payload.issue.number|tostring)),
+                    title: (.payload.issue.title // "(no title)"),
+                    ts: .created_at
+                  }
+                elif .type == "IssuesEvent" and .payload.action == "opened" then
+                  {
+                    repo: .repo.name,
+                    type: "Issue",
+                    number: (.payload.issue.number),
+                    url: .payload.issue.html_url,
+                    title: (.payload.issue.title // "(no title)"),
+                    ts: .created_at
+                  }
+                elif .type == "PullRequestEvent" and .payload.action == "closed" then
+                  {
+                    repo: .repo.name,
+                    type: "Pull Request",
+                    number: (.payload.pull_request.number),
+                    url: .payload.pull_request.html_url,
+                    title: (.payload.pull_request.title // "(no title)"),
+                    ts: .created_at
+                  }
+                else empty end
+            ]' events.json > activities.json
           
-          # 2. Fetch authored issues/PRs
-          echo "Fetching authored issues/PRs..."
-          gh api -X GET -H "Accept: application/vnd.github+json" \
-            /search/issues \
-            -f q="author:${GITHUB_USER}+-user:${GITHUB_USER}" \
-            --paginate \
-            --jq '.items[]' > authored.json || echo "[]" > authored.json
-          
-          # 3. Merge both results & deduplicate
-          echo "Merging results..."
-          jq -s 'add
-            | unique_by(.id)
-            | map({
-                repo: ((.repository_url | split("/"))[-2] + "/" + (.repository_url | split("/"))[-1]),
-                num: ("#" + (.number|tostring)),
-                url: .html_url,
-                title: .title,
-                updated: .updated_at,
-                updated_short: .updated_at[0:10],
-                type: (if .pull_request then "Pull Request"
-                       elif (.html_url | test("/issues/")) then "Issue"
-                       else "Comment" end)
-              })' commented.json authored.json > all_activities.json
-          
-          # 4. Group by repo (latest first)
-          echo "Grouping and sorting by date..."
-          repos=$(jq -r '.[].repo' all_activities.json | sort -u)
-          
+          # 3) 아무 활동도 없을 때 안내
+          if [ "$(jq 'length' activities.json)" = "0" ]; then
+            echo "_No recent external activity found._" >> activity.md
+            echo "" >> activity.md
+            echo "_Last updated: $(TZ='UTC' date '+%Y-%m-%d %H:%M:%S UTC')_" >> activity.md
+            cat activity.md
+            exit 0
+          fi
+
+          # 4) Repo별 그룹 + 활동 수 + 최신순 정렬(이벤트 발생 시각)
+          repos=$(jq -r '.[].repo' activities.json | sort -u)
           for repo in $repos; do
-            echo "### ${repo}" >> activity.md
-          
+            count=$(jq -r --arg repo "$repo" '[.[] | select(.repo==$repo)] | length' activities.json)
+            echo "### ${repo} (${count} activities)" >> activity.md
+      
             jq -r --arg repo "$repo" '
               [.[] | select(.repo==$repo)]
-              | sort_by(.updated)
-              | reverse
-              | .[]
+              | sort_by(.ts) | reverse | .[]
               | "- " +
                 (if .type=="Comment" then "(Comment)"
                  elif .type=="Issue" then "(Issue)"
                  elif .type=="Pull Request" then "(Pull Request)"
                  else "• (Activity)" end)
-                + " [\(.num)](\(.url)) " + .title + " (\(.updated_short))"
-            ' all_activities.json | head -n 5 >> activity.md
-          
+                + " [#" + (.number|tostring) + "](" + .url + ") " + .title + " (" + (.ts[0:10]) + ")"
+            ' activities.json | head -n 5 >> activity.md
+      
             echo "" >> activity.md
           done
 
           # 5. Timestamp
           echo "_Last updated: $(TZ='UTC' date '+%Y-%m-%d %H:%M:%S UTC')_" >> activity.md
 
-          echo ""
           echo "===== Generated activity.md ====="
           cat activity.md
-          echo "================================="
 
       - name: Merge into README
         run: |
