@@ -25,13 +25,13 @@ jobs:
           echo "## 📢 OpenAPI Activity" > activity.md
           echo "" >> activity.md
 
-          # 1️⃣ Fetch all activities (comments, issues, PRs)
+          # 1. Fetch all activities (comments, issues, PRs)
           echo "Fetching recent activities..."
           gh api -H "Accept: application/vnd.github+json" \
             "/search/issues?q=commenter:${GITHUB_USER}+author:${GITHUB_USER}" \
             --paginate \
             --jq '[.items[] | {
-              repo: (.repository_url | split("/")[-2] + "/" + .repository_url | split("/")[-1]),
+              repo: ((.repository_url | split("/"))[-2] + "/" + (.repository_url | split("/"))[-1]),
               num: ("#" + (.number|tostring)),
               url: .html_url,
               title: .title,
@@ -42,7 +42,7 @@ jobs:
                      else "Comment" end)
             }]' > all_activities.json
 
-          # 2️⃣ Group by repository (sorted latest first)
+          # 2. Group by repository (sorted latest first)
           echo "Grouping and sorting by date..."
           repos=$(jq -r '.[].repo' all_activities.json | sort -u)
 
@@ -65,7 +65,7 @@ jobs:
             echo "" >> activity.md
           done
 
-          # 3️⃣ Append timestamp (UTC)
+          # 3. Append timestamp (UTC)
           echo "_Last updated: $(TZ='UTC' date '+%Y-%m-%d %H:%M:%S UTC')_" >> activity.md
 
           echo ""
