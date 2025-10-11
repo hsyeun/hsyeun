@@ -50,10 +50,10 @@ jobs:
             echo "### ${repo}" >> activity.md
 
             jq -r --arg repo "$repo" '
-              .[]
-              | select(.repo==$repo)
+              [.[] | select(.repo==$repo)]
               | sort_by(.updated)
               | reverse
+              | .[]
               | "- " +
                 (if .type=="Comment" then "(Comment)"
                  elif .type=="Issue" then "(Issue)"
