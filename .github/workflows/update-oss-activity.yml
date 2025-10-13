@@ -1,7 +1,7 @@
 name: Update GitHub Activity
 on:
   schedule:
-    - cron: '25 4 * * *'  # 매일 오전 0시 (KST 기)
+    - cron: '0 15 * * *'  # 매일 오전 0시 (KST 기준)
   workflow_dispatch:
 
 permissions:
